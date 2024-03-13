@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const wrtc = require('wrtc');
+const fs = require('fs');
 
 var connectedUser;
 var conn = new WebSocket('ws://localhost:9090');
@@ -63,13 +64,34 @@ function initializeSender() {
 
     dataChannel.onopen = function () {
         console.log("Data channel opened");
-        // Now you can send data over dataChannel
-        dataChannel.send("Hi, I am Rakibul");
+
+         // Sending a message
+        dataChannel.send("Hello, this is a test message from sender!");
+       
+    //    // Read and send the audio file
+    //     const audioFilePath = './Symphony.opus';
+    //     const audioFileData = fs.readFileSync(audioFilePath);
+    //     dataChannel.send(audioFileData);
+    //     console.log("Audio file sent");
     };
 
-    dataChannel.onmessage = function (event) {
-        console.log("Data received from receiver:", event.data);
+    dataChannel.onmessage = function (event){
+        console.log("Data received from receiver: ", event.data, ", ", event.data.length, " bytes");
+    }
+
+    // Log ice candidate to the console
+    yourConn.onicecandidate = (event) => {
+        if (event.candidate) {
+            console.log('ice candidate in sender:');
+            console.log(JSON.stringify(event.candidate));
+            send({
+                type: "candidate",
+                candidate: event.candidate
+            });
+        }
+    
     };
+
 
     yourConn.createOffer().then(function (offer) {
         console.log("Creating offer from sender.");
@@ -107,7 +129,9 @@ function handleAnswer(answer) {
 
 function handleCandidate(candidate) {
     console.log("Handling candidate in sender.");
-    yourConn.addIceCandidate(new wrtc.RTCIceCandidate(candidate));
+    yourConn.addIceCandidate(new wrtc.RTCIceCandidate(candidate))
+    .then(() => console.log("ICE candidate added successfully"))
+    .catch(error => console.error("Failed to set ICE candidate.", error));
 }
 
 function handleLeave() {
